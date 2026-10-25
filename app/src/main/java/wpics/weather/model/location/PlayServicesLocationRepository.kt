@@ -19,6 +19,7 @@ class PlayServicesLocationRepository(
         private const val TAG = "WeatherApp"
     }
 
+
     @SuppressLint("MissingPermission")
     @RequiresPermission(
         anyOf = [
@@ -31,49 +32,80 @@ class PlayServicesLocationRepository(
 
         return try {
             suspendCancellableCoroutine { continuation ->
+                val cancellationTokenSource = CancellationTokenSource()
 
-                // First, try to get the device's last known location.
-                client.lastLocation
+                continuation.invokeOnCancellation {
+                    cancellationTokenSource.cancel()
+                }
+
+                client.getCurrentLocation(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    cancellationTokenSource.token
+                )
                     .addOnSuccessListener { location ->
-                        if (location != null) {
-                            if (continuation.isActive) {
+                        if (continuation.isActive) {
+                            if (location != null) {
                                 continuation.resume(
-                                    Coordinate(location.latitude, location.longitude)
+                                    Coordinate(
+                                        location.latitude,
+                                        location.longitude
+                                    )
                                 )
+                            } else {
+                                // Current location unavailable; try last known location.
+                                client.lastLocation
+                                    .addOnSuccessListener { lastLocation ->
+                                        if (continuation.isActive) {
+                                            continuation.resume(
+                                                lastLocation?.let {
+                                                    Coordinate(
+                                                        it.latitude,
+                                                        it.longitude
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .addOnFailureListener { exception ->
+                                        Log.e(
+                                            TAG,
+                                            "Failed to get last known location",
+                                            exception
+                                        )
+                                        if (continuation.isActive) {
+                                            continuation.resume(null)
+                                        }
+                                    }
                             }
-                        } else {
-                            // If no last known location exists, request a current location.
-                            val cancellationTokenSource = CancellationTokenSource()
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e(TAG, "Failed to get current location", exception)
 
-                            continuation.invokeOnCancellation {
-                                cancellationTokenSource.cancel()
-                            }
-
-                            client.getCurrentLocation(
-                                Priority.PRIORITY_HIGH_ACCURACY,
-                                cancellationTokenSource.token
-                            )
-                                .addOnSuccessListener { currentLocation ->
+                        if (continuation.isActive) {
+                            client.lastLocation
+                                .addOnSuccessListener { lastLocation ->
                                     if (continuation.isActive) {
                                         continuation.resume(
-                                            currentLocation?.let {
-                                                Coordinate(it.latitude, it.longitude)
+                                            lastLocation?.let {
+                                                Coordinate(
+                                                    it.latitude,
+                                                    it.longitude
+                                                )
                                             }
                                         )
                                     }
                                 }
-                                .addOnFailureListener { exception ->
-                                    Log.e(TAG, "Failed to get current location", exception)
+                                .addOnFailureListener { fallbackException ->
+                                    Log.e(
+                                        TAG,
+                                        "Failed to get last known location",
+                                        fallbackException
+                                    )
                                     if (continuation.isActive) {
                                         continuation.resume(null)
                                     }
                                 }
-                        }
-                    }
-                    .addOnFailureListener { exception ->
-                        Log.e(TAG, "Failed to get last known location", exception)
-                        if (continuation.isActive) {
-                            continuation.resume(null)
                         }
                     }
             }
@@ -82,4 +114,5 @@ class PlayServicesLocationRepository(
             null
         }
     }
+
 }
