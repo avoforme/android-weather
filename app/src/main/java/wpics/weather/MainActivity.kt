@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Weather")
+                        Text(BuildConfig.WEATHER_KEY)
                     }
                 }
             }
