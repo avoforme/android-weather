@@ -1,9 +1,6 @@
-
-// TODO: Add your name here as a header comment (required on every Kotlin file you write or edit).
 package wpics.weather
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,83 +11,54 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-import wpics.weather.model.location.Coordinate
-import wpics.weather.model.weather.UnitSystem
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import wpics.weather.model.location.PlayServicesLocationRepository
 import wpics.weather.model.weather.WeatherRepository
 import wpics.weather.ui.theme.WeatherTheme
+import wpics.weather.viewmodel.LocationViewModel
+import wpics.weather.viewmodel.WeatherViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var locationViewModel: LocationViewModel
+    private lateinit var weatherViewModel: WeatherViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // TEMPORARY TEST: Fetch weather for London.
-        lifecycleScope.launch {
-            try {
-                val repository = WeatherRepository()
-                val coordinate = Coordinate(
-                    lat = 51.5074,
-                    lon = -0.1278
-                )
+        // Create each repository once.
+        val locationRepository =
+            PlayServicesLocationRepository(applicationContext)
+        val weatherRepository = WeatherRepository()
 
-                val response = repository.getWeather(
-                    coordinate,
-                    UnitSystem.METRIC
-                )
-
-                Log.d(
-                    "WeatherTest",
-                    """
-                    City: ${response.name}
-                    Temperature: ${response.main?.temp} °C
-                    Humidity: ${response.main?.humidity}%
-                    Pressure: ${response.main?.pressure} hPa
-                    Description: ${response.weather?.firstOrNull()?.description}
-                    Wind speed: ${response.wind?.speed} m/s
-                    """.trimIndent()
-                )
-
-                val forecastResponse = repository.getForecast(
-                    coordinate,
-                    UnitSystem.METRIC
-                )
-
-                Log.d(
-                    "ForecastTest",
-                    "Forecast city: ${forecastResponse.city?.name}"
-                )
-
-                val forecastItems = forecastResponse.list
-
-                if (forecastItems.isNullOrEmpty()) {
-                    Log.e("ForecastTest", "No forecast items were parsed")
-                } else {
-                    forecastItems.take(5).forEachIndexed { index, item ->
-                        Log.d(
-                            "ForecastTest",
-                            """
-                            Forecast #${index + 1}
-                            Date/time: ${item.dtTxt}
-                            Temperature: ${item.main?.temp} °C
-                            Humidity: ${item.main?.humidity}%
-                            Description: ${item.weather?.firstOrNull()?.description}
-                            """.trimIndent()
-                        )
-                    }
-
-                    Log.d(
-                        "ForecastTest",
-                        "Success! Parsed ${forecastItems.size} forecast items."
-                    )
-                }
-
-            } catch (e: Exception) {
-                Log.e("WeatherTest", "Weather request failed", e)
+        // Create a factory for LocationViewModel.
+        val locationViewModelFactory = viewModelFactory {
+            initializer {
+                LocationViewModel(locationRepository)
             }
         }
+
+        // Create a factory for WeatherViewModel.
+        val weatherViewModelFactory = viewModelFactory {
+            initializer {
+                WeatherViewModel(weatherRepository)
+            }
+        }
+
+        // Obtain ViewModels using their factories.
+        // ViewModelProvider reuses existing ViewModels when appropriate.
+        locationViewModel = ViewModelProvider(
+            this,
+            locationViewModelFactory
+        )[LocationViewModel::class.java]
+
+        weatherViewModel = ViewModelProvider(
+            this,
+            weatherViewModelFactory
+        )[WeatherViewModel::class.java]
 
         setContent {
             WeatherTheme {
@@ -102,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Testing weather API... Check Logcat.")
+                        Text("Weather app")
                     }
                 }
             }
