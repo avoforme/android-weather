@@ -3,7 +3,7 @@ package wpics.weather.model.weather
 import com.squareup.moshi.Json
 
 data class WeatherResponse(
-    val city: City? = null,
+    val name: String? = null,
     val main: Main? = null,
     val weather: List<Weather>? = null,
     val wind: Wind? = null,
@@ -11,9 +11,6 @@ data class WeatherResponse(
     val rain: Rain? = null
 )
 
-data class City (
-    val name: String
-)
 
 data class Main(
     val temp: Double? = null,
