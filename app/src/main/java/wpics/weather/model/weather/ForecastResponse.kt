@@ -17,3 +17,12 @@ data class ForecastItem(
     val main: Main? = null,
     val weather: List<Weather>? = null
 )
+
+
+data class ForecastDay(
+    val date: String,
+    val minTemp: Double,
+    val maxTemp: Double,
+    val icon: String?,
+    val description: String?
+)
