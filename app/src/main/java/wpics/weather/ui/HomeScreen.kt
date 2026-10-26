@@ -1,4 +1,3 @@
-
 package wpics.weather
 
 import android.Manifest
@@ -7,14 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,6 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import wpics.weather.ui.components.LocationCheckingContent
+import wpics.weather.ui.components.LocationErrorContent
+import wpics.weather.ui.components.LocationLoadingContent
+import wpics.weather.ui.components.LocationPermissionRequiredContent
 import wpics.weather.viewmodel.LocationViewModel
 
 @Composable
@@ -83,51 +80,28 @@ fun HomeScreen(
     ) {
         when {
             !permissionChecked -> {
-                CircularProgressIndicator()
-                Spacer(Modifier.height(16.dp))
-                Text("Checking location permission...")
+                LocationCheckingContent()
             }
 
             permissionDenied ||
                     !locationState.hasLocationPermission -> {
-                Text(
-                    text = "Location permission is needed to show " +
-                            "the weather for your current location.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
+                LocationPermissionRequiredContent(
+                    onGrantPermission = {
                         permissionLauncher.launch(locationPermissions)
                     }
-                ) {
-                    Text("Grant permission")
-                }
+                )
             }
 
             locationState.isLoading -> {
-                CircularProgressIndicator()
-                Spacer(Modifier.height(16.dp))
-                Text("Getting your location...")
+                LocationLoadingContent()
             }
 
             locationState.coordinate == null -> {
-                Text(
-                    text = "Couldn't get your location. " +
-                            "Please try again."
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
+                LocationErrorContent(
+                    onRetry = {
                         locationViewModel.loadLocation()
                     }
-                ) {
-                    Text("Retry")
-                }
+                )
             }
         }
     }

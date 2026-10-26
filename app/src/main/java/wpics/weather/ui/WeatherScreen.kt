@@ -1,26 +1,45 @@
-
 package wpics.weather.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.Color
 import wpics.weather.model.location.Coordinate
 import wpics.weather.model.weather.UnitSystem
+import wpics.weather.ui.components.CurrentConditionsCard
+import wpics.weather.ui.components.CurrentWeatherSummary
+import wpics.weather.ui.components.ForecastDayCard
+import wpics.weather.ui.components.ForecastHeading
+import wpics.weather.ui.components.ForecastUnavailableContent
+import wpics.weather.ui.components.UnitSelector
+import wpics.weather.ui.components.WeatherErrorContent
+import wpics.weather.ui.components.WeatherLoadingContent
+import wpics.weather.ui.components.WeatherUnavailableContent
+import wpics.weather.ui.components.formatWeatherDate
+import wpics.weather.ui.components.formatWeatherTime
+import wpics.weather.ui.components.getWeatherBackground
+import wpics.weather.ui.components.getWeatherTextColor
 import wpics.weather.viewmodel.WeatherViewModel
 import wpics.weather.viewmodel.groupForecastByDay
-import wpics.weather.ui.theme.*
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
@@ -29,11 +48,16 @@ fun WeatherScreen(
     coordinate: Coordinate?
 ) {
     val state by weatherViewModel.uiState.collectAsState()
-    var selectedUnit by remember { mutableStateOf(UnitSystem.METRIC) }
+
+    var selectedUnit by remember {
+        mutableStateOf(UnitSystem.METRIC)
+    }
 
     // Fetch weather when this screen receives a coordinate.
     LaunchedEffect(coordinate) {
-        coordinate?.let { weatherViewModel.fetchData(it) }
+        coordinate?.let {
+            weatherViewModel.fetchData(it)
+        }
     }
 
     val temperatureUnit = when (selectedUnit) {
@@ -49,7 +73,9 @@ fun WeatherScreen(
     }
 
     val forecastDays = remember(state.forecast) {
-        state.forecast?.let { groupForecastByDay(it) }.orEmpty()
+        state.forecast?.let {
+            groupForecastByDay(it)
+        }.orEmpty()
     }
 
     // Choose the background using the current weather icon.
@@ -69,43 +95,14 @@ fun WeatherScreen(
                 .fillMaxSize()
                 .background(weatherBackground)
         ) {
-
             // Unit selection buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                UnitSystem.values().forEach { unit ->
-                    Button(
-                        onClick = {
-                            selectedUnit = unit
-                            weatherViewModel.updateUnitSystem(unit)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedUnit == unit) {
-                                Color(0xFFFFC107) // Bright amber
-                            } else {
-                                Color.White.copy(alpha = 0.8f)
-                            },
-                            contentColor = Color(0xFF172033),
-                            disabledContainerColor = Color(0xFFFFC107),
-                            disabledContentColor = Color(0xFF172033)
-                        ),
-                        enabled = selectedUnit != unit
-                    ) {
-                        Text(
-                            when (unit) {
-                                UnitSystem.METRIC -> "Metric"
-                                UnitSystem.IMPERIAL -> "Imperial"
-                                UnitSystem.STANDARD -> "Standard"
-                            }
-                        )
-                    }
+            UnitSelector(
+                selectedUnit = selectedUnit,
+                onUnitSelected = { unit ->
+                    selectedUnit = unit
+                    weatherViewModel.updateUnitSystem(unit)
                 }
-            }
-
+            )
 
             when {
                 state.isLoading -> {
@@ -113,13 +110,7 @@ fun WeatherScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator()
-                            Spacer(Modifier.height(12.dp))
-                            Text("Loading weather...")
-                        }
+                        WeatherLoadingContent()
                     }
                 }
 
@@ -128,21 +119,12 @@ fun WeatherScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(24.dp)
-                        ) {
-                            Text(
-                                text = state.errorMessage!!,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = { weatherViewModel.retry() }
-                            ) {
-                                Text("Retry")
+                        WeatherErrorContent(
+                            message = state.errorMessage!!,
+                            onRetry = {
+                                weatherViewModel.retry()
                             }
-                        }
+                        )
                     }
                 }
 
@@ -158,174 +140,58 @@ fun WeatherScreen(
                     ) {
                         // Current weather summary
                         item {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = weather.name ?: "Unknown city",
-                                    style = MaterialTheme.typography.headlineMedium
-                                )
-
-                                condition?.icon?.let { icon ->
-                                    AsyncImage(
-                                        model = "https://openweathermap.org/img/wn/${icon}@2x.png",
-                                        contentDescription = condition.description
-                                            ?: "Current weather",
-                                        modifier = Modifier.size(100.dp)
-                                    )
-                                }
-
-                                Text(
-                                    text = current?.temp?.let {
-                                        "${it.roundToInt()} $temperatureUnit"
-                                    } ?: "Temperature unavailable",
-                                    style = MaterialTheme.typography.displaySmall
-                                )
-
-                                Text(
-                                    text = condition?.description
-                                        ?.replaceFirstChar { it.uppercase() }
-                                        ?: "Conditions unavailable",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
+                            CurrentWeatherSummary(
+                                cityName = weather.name ?: "Unknown city",
+                                icon = condition?.icon,
+                                description = condition?.description,
+                                temperature = current?.temp?.let {
+                                    "${it.roundToInt()} $temperatureUnit"
+                                } ?: "Temperature unavailable"
+                            )
                         }
 
                         // Current weather details
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor =
-                                        MaterialTheme.colorScheme.surface
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = "Current conditions",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    HorizontalDivider()
-
-                                    Text(
-                                        text = "Humidity: " +
-                                                (current?.humidity?.let { "$it%" }
-                                                    ?: "N/A"),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    Text(
-                                        text = "Precipitation (last hour): " +
-                                                (weather.rain?.oneHour?.let {
-                                                    "$it $precipitationUnit"
-                                                } ?: "N/A"),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    Text(
-                                        text = "Pressure: " +
-                                                (current?.pressure?.let { "$it hPa" }
-                                                    ?: "N/A"),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    Text(
-                                        text = "Sunrise: " +
-                                                (weather.sys?.sunrise?.let {
-                                                    formatTime(it)
-                                                } ?: "N/A"),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    Text(
-                                        text = "Sunset: " +
-                                                (weather.sys?.sunset?.let {
-                                                    formatTime(it)
-                                                } ?: "N/A"),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
+                            CurrentConditionsCard(
+                                humidity = current?.humidity?.let {
+                                    "$it%"
+                                } ?: "N/A",
+                                precipitation = weather.rain?.oneHour?.let {
+                                    "$it $precipitationUnit"
+                                } ?: "N/A",
+                                pressure = current?.pressure?.let {
+                                    "$it hPa"
+                                } ?: "N/A",
+                                sunrise = weather.sys?.sunrise?.let {
+                                    formatWeatherTime(it)
+                                } ?: "N/A",
+                                sunset = weather.sys?.sunset?.let {
+                                    formatWeatherTime(it)
+                                } ?: "N/A"
+                            )
                         }
 
                         // Forecast heading
                         item {
-                            Text(
-                                text = "5-day forecast",
-                                style = MaterialTheme.typography.titleLarge
-                            )
+                            ForecastHeading()
                         }
 
-                        // Handle a missing or empty forecast
+                        // Forecast list
                         if (forecastDays.isEmpty()) {
                             item {
-                                Text("Forecast data is unavailable.")
+                                ForecastUnavailableContent()
                             }
                         } else {
                             items(forecastDays) { day ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor =
-                                            MaterialTheme.colorScheme.surface
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp),
-                                        verticalAlignment =
-                                            Alignment.CenterVertically,
-                                        horizontalArrangement =
-                                            Arrangement.SpaceBetween
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(
-                                                text = formatDate(day.date),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-
-                                            Text(
-                                                text = day.description
-                                                    ?: "No description",
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-
-                                        day.icon?.let { icon ->
-                                            AsyncImage(
-                                                model = "https://openweathermap.org/img/wn/${icon}.png",
-                                                contentDescription = day.description
-                                                    ?: "Forecast weather",
-                                                modifier = Modifier.size(56.dp)
-                                            )
-                                        }
-
-                                        Column(
-                                            horizontalAlignment =
-                                                Alignment.End
-                                        ) {
-                                            Text(
-                                                text = "H: ${day.maxTemp.roundToInt()}$temperatureUnit",
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-
-                                            Text(
-                                                text = "L: ${day.minTemp.roundToInt()}$temperatureUnit",
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-                                }
+                                ForecastDayCard(
+                                    date = formatWeatherDate(day.date),
+                                    description = day.description,
+                                    icon = day.icon,
+                                    highTemperature =
+                                        "${day.maxTemp.roundToInt()}$temperatureUnit",
+                                    lowTemperature =
+                                        "${day.minTemp.roundToInt()}$temperatureUnit"
+                                )
                             }
                         }
                     }
@@ -336,78 +202,18 @@ fun WeatherScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("Weather data is not available yet.")
-                            Spacer(Modifier.height(12.dp))
-
-                            Button(
-                                onClick = {
-                                    if (coordinate != null) {
-                                        weatherViewModel.fetchData(coordinate)
-                                    } else {
-                                        weatherViewModel.retry()
-                                    }
+                        WeatherUnavailableContent(
+                            onRetry = {
+                                if (coordinate != null) {
+                                    weatherViewModel.fetchData(coordinate)
+                                } else {
+                                    weatherViewModel.retry()
                                 }
-                            ) {
-                                Text("Retry")
                             }
-                        }
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-private fun formatTime(timestampSeconds: Long): String {
-    val formatter = SimpleDateFormat("h:mm a", Locale.getDefault())
-    return formatter.format(Date(timestampSeconds * 1000L))
-}
-
-private fun formatDate(date: String): String {
-    return try {
-        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val formatter = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
-        formatter.format(parser.parse(date)!!)
-    } catch (_: Exception) {
-        date
-    }
-}
-
-private fun getWeatherBackground(icon: String?): Color {
-    val isDay = icon?.endsWith("d") == true
-    val conditionCode = icon?.take(2)
-
-    return when (conditionCode) {
-        "01" ->
-            if (isDay) ClearDayBackground else ClearNightBackground
-
-        "02", "03", "04" ->
-            if (isDay) CloudsDayBackground else CloudsNightBackground
-
-        "09", "10" ->
-            if (isDay) RainDayBackground else RainNightBackground
-
-        "11" ->
-            if (isDay) StormDayBackground else StormNightBackground
-
-        "13" ->
-            if (isDay) SnowDayBackground else SnowNightBackground
-
-        "50" ->
-            if (isDay) MistDayBackground else MistNightBackground
-
-        else ->
-            if (isDay) LightBackground else DarkBackground
-    }
-}
-
-private fun getWeatherTextColor(background: Color): Color {
-    return if (background.luminance() > 0.4f) {
-        WeatherDayText
-    } else {
-        WeatherNightText
     }
 }
