@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,23 +26,43 @@ fun LocationCheckingContent() {
 }
 
 @Composable
-fun LocationPermissionRequiredContent(
-    onGrantPermission: () -> Unit
-) {
+fun LocationPermissionRequiredContent() {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Location permission is needed to show the weather for your current location.",
+            text = "Location Permission Required",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = "To show the weather for your current location, " +
+                    "please enable location permission in your device settings.",
             style = MaterialTheme.typography.bodyLarge
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
 
-        Button(onClick = onGrantPermission) {
-            Text("Grant permission")
-        }
+        Text(
+            text = "How to enable location:",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = "1. Open Settings on your device.\n" +
+                    "2. Go to Apps and select Weather.\n" +
+                    "3. Tap Permissions, then Location.\n" +
+                    "4. Select \"Allow only while using the app\" " +
+                    "or \"Ask every time\".\n" +
+                    "5. Return to the Weather app.",
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
@@ -70,7 +88,7 @@ fun LocationErrorContent(
 
         Spacer(Modifier.height(16.dp))
 
-        Button(onClick = onRetry) {
+        androidx.compose.material3.Button(onClick = onRetry) {
             Text("Retry")
         }
     }

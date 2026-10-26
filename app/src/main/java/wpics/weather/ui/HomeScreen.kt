@@ -20,6 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import wpics.weather.ui.components.LocationCheckingContent
 import wpics.weather.ui.components.LocationErrorContent
 import wpics.weather.ui.components.LocationLoadingContent
@@ -31,15 +34,30 @@ fun HomeScreen(
     locationViewModel: LocationViewModel
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val locationState by locationViewModel.uiState.collectAsState()
 
-    var permissionChecked by remember { mutableStateOf(false) }
-    var permissionDenied by remember { mutableStateOf(false) }
+    var permissionChecked by remember {
+        mutableStateOf(false)
+    }
+
+    var permissionDenied by remember {
+        mutableStateOf(false)
+    }
 
     val locationPermissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
     )
+
+    fun hasLocationPermission(): Boolean {
+        return locationPermissions.any { permission ->
+            ContextCompat.checkSelfPermission(
+                context,
+                permission
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -53,13 +71,9 @@ fun HomeScreen(
             locationViewModel.updatePermissionStatus(granted)
         }
 
+    // Check permission when the screen first opens.
     LaunchedEffect(Unit) {
-        val hasPermission = locationPermissions.any { permission ->
-            ContextCompat.checkSelfPermission(
-                context,
-                permission
-            ) == PackageManager.PERMISSION_GRANTED
-        }
+        val hasPermission = hasLocationPermission()
 
         permissionChecked = true
 
@@ -68,6 +82,25 @@ fun HomeScreen(
             locationViewModel.updatePermissionStatus(true)
         } else {
             permissionLauncher.launch(locationPermissions)
+        }
+    }
+
+    // Recheck permission when the user returns from device Settings.
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val granted = hasLocationPermission()
+
+                permissionChecked = true
+                permissionDenied = !granted
+                locationViewModel.updatePermissionStatus(granted)
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -85,11 +118,7 @@ fun HomeScreen(
 
             permissionDenied ||
                     !locationState.hasLocationPermission -> {
-                LocationPermissionRequiredContent(
-                    onGrantPermission = {
-                        permissionLauncher.launch(locationPermissions)
-                    }
-                )
+                LocationPermissionRequiredContent()
             }
 
             locationState.isLoading -> {
