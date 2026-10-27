@@ -1,3 +1,4 @@
+// Thanh Ho
 package wpics.weather.ui
 
 import android.util.Log

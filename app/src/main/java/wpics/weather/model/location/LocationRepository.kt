@@ -1,3 +1,4 @@
+// Thanh Ho
 package wpics.weather.model.location
 
 interface LocationRepository {

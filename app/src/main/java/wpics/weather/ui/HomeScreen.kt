@@ -1,3 +1,4 @@
+// Thanh Ho
 package wpics.weather
 
 import android.Manifest

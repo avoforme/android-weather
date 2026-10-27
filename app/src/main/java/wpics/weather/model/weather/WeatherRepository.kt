@@ -1,3 +1,4 @@
+// Thanh Ho
 package wpics.weather.model.weather
 
 import wpics.weather.model.location.Coordinate

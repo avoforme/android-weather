@@ -1,4 +1,4 @@
-
+// Thanh Ho
 package wpics.weather.ui.theme
 
 import androidx.compose.ui.graphics.Color

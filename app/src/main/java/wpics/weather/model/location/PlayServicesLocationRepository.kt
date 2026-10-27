@@ -1,3 +1,4 @@
+// Thanh Ho
 package wpics.weather.model.location
 
 import android.Manifest

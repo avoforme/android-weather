@@ -1,3 +1,4 @@
+// Thanh Ho
 package wpics.weather.model.weather
 
 import com.squareup.moshi.Moshi

@@ -1,4 +1,4 @@
-
+// Thanh Ho
 package wpics.weather
 
 import android.os.Bundle
