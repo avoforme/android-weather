@@ -69,7 +69,7 @@ fun WeatherScreen(
 
     val precipitationUnit = when (selectedUnit) {
         UnitSystem.METRIC -> "mm"
-        UnitSystem.IMPERIAL -> "in"
+        UnitSystem.IMPERIAL -> "mm"
         UnitSystem.STANDARD -> "mm"
     }
 
