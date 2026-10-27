@@ -33,5 +33,5 @@ data class Sys(
 )
 
 data class Rain(
-    @Json(name = "1h") val oneHour: Double? = null
+    @Json(name = "1h") val oneHour: Double? = null,
 )

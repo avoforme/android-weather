@@ -186,7 +186,7 @@ fun CurrentConditionsCard(
             HorizontalDivider()
 
             ConditionRow("Humidity", humidity)
-            ConditionRow("Precipitation (last hour)", precipitation)
+            ConditionRow("Precipitation (last 1 hour)", precipitation)
             ConditionRow("Pressure", pressure)
             ConditionRow("Sunrise", sunrise)
             ConditionRow("Sunset", sunset)

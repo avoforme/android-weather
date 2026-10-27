@@ -1,5 +1,6 @@
 package wpics.weather.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -149,8 +150,7 @@ fun WeatherScreen(
                                 } ?: "Temperature unavailable"
                             )
                         }
-
-                        // Current weather details
+                        Log.d("WeatherDebug", "Rain oneHour: ${weather.rain?.oneHour}")                        // Current weather details
                         item {
                             CurrentConditionsCard(
                                 humidity = current?.humidity?.let {
@@ -158,7 +158,7 @@ fun WeatherScreen(
                                 } ?: "N/A",
                                 precipitation = weather.rain?.oneHour?.let {
                                     "$it $precipitationUnit"
-                                } ?: "N/A",
+                                } ?: "0.00 $precipitationUnit",
                                 pressure = current?.pressure?.let {
                                     "$it hPa"
                                 } ?: "N/A",
