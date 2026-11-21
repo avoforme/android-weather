@@ -10,7 +10,7 @@ A modern Android weather application built with **Kotlin** and **Jetpack Compose
 
 |             Dark Mode              |         Location Screen          |
 |:----------------------------------:|:--------------------------------:|
-| ![Dark Mode](images/dark_mode.png) | ![Location](images/location.png) |
+| ![Dark Mode](images/location.png) | ![Location](images/dark-mode.png) |
 
 ## 📱 Features
 
